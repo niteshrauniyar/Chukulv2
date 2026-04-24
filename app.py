@@ -5,22 +5,26 @@ from signals import generate_signals
 
 st.set_page_config(page_title="NEPSE Quant", layout="wide")
 
-st.title("🚀 NEPSE Institutional Quant Dashboard")
+st.title("🚀 NEPSE Institutional Quant")
+
+# ALWAYS SHOW SOMETHING FIRST (prevents "infinite loading")
+status = st.empty()
+status.info("App started... loading data")
 
 fetcher = ChukulFetcher()
 
-# ALWAYS SHOW UI FIRST
-placeholder = st.empty()
-placeholder.info("Fetching market data...")
-
-df = fetcher.fetch()
+try:
+    df = fetcher.fetch()
+except:
+    df = None
 
 if df is None or df.empty:
-    placeholder.error("API unavailable. Showing empty dashboard.")
+    status.error("⚠ Data not available (API issue)")
     df = None
 else:
-    placeholder.success("Data loaded successfully")
+    status.success("Data loaded")
 
+# SAFE PIPELINE
 df = analyze_market(df)
 df = generate_signals(df)
 
@@ -32,9 +36,10 @@ if df is not None and not df.empty:
     col3.metric("INST", len(df[df["cluster_name"] == "Institutional"]))
 
     st.subheader("Signals")
-    st.dataframe(df[df["Signal"].isin(["STRONG BUY", "EXIT"])], use_container_width=True)
+    st.dataframe(df[df["Signal"].isin(["STRONG BUY", "EXIT"])])
 
     st.subheader("Full Data")
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df)
+
 else:
-    st.warning("No data to display")
+    st.warning("No data available right now. App is still working.")
