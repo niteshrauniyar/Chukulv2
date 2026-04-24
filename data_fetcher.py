@@ -9,38 +9,36 @@ class ChukulFetcher:
             "Referer": "https://chukul.com/nepse-charts"
         }
 
-    def to_float(self, x):
-        try:
-            return float(str(x).replace(",", ""))
-        except:
-            return 0.0
-
     def fetch(self):
         try:
             r = requests.get(self.url, headers=self.headers, timeout=5)
-            r.raise_for_status()
 
-            data = r.json()
+            if r.status_code != 200:
+                return pd.DataFrame()
+
+            try:
+                data = r.json()
+            except:
+                return pd.DataFrame()
 
             rows = []
-            for i in data:
-                rows.append({
-                    "symbol": i.get("symbol", ""),
-                    "ltp": self.to_float(i.get("ltp", 0)),
-                    "open": self.to_float(i.get("open", 0)),
-                    "volume": self.to_float(i.get("vol", 0)),
-                    "turnover": self.to_float(i.get("turnover", 0)),
-                })
+
+            if isinstance(data, list):
+                for i in data:
+                    rows.append({
+                        "symbol": i.get("symbol", ""),
+                        "ltp": float(i.get("ltp", 0) or 0),
+                        "open": float(i.get("open", 0) or 0),
+                        "volume": float(i.get("vol", 0) or 0),
+                        "turnover": float(i.get("turnover", 0) or 0),
+                    })
 
             df = pd.DataFrame(rows)
 
             if df.empty:
-                return pd.DataFrame()
+                return df
 
-            df = df[(df["ltp"] > 0) & (df["volume"] > 0)]
+            return df[(df["ltp"] > 0) & (df["volume"] > 0)]
 
-            return df
-
-        except Exception as e:
-            print("API error:", e)
+        except:
             return pd.DataFrame()
