@@ -1,51 +1,37 @@
 import streamlit as st
-import pandas as pd
 from data_fetcher import ChukulFetcher
 from analysis import analyze_market
 from signals import generate_signals
 
 st.set_page_config(page_title="NEPSE Quant", layout="wide")
 
-st.title("🚀 NEPSE Institutional Quant")
+st.title("🚀 NEPSE Institutional Quant Dashboard")
 
-try:
-    fetcher = ChukulFetcher()
-    df = fetcher.fetch()
+fetcher = ChukulFetcher()
+df = fetcher.fetch()
 
-    if df is None or df.empty:
-        st.warning("No market data available.")
-        st.stop()
+if df is None or df.empty:
+    st.warning("No data available from API")
+    st.stop()
 
-    required = ["symbol", "ltp", "open", "volume", "turnover"]
+df = analyze_market(df)
+df = generate_signals(df)
 
-    for col in required:
-        if col not in df.columns:
-            df[col] = 0
+st.success("Data Loaded")
 
-    df = analyze_market(df)
-    df = generate_signals(df)
+col1, col2, col3 = st.columns(3)
 
-    st.success("Data Loaded Successfully")
+col1.metric("BUY", len(df[df["Signal"] == "STRONG BUY"]))
+col2.metric("SELL", len(df[df["Signal"] == "EXIT"]))
+col3.metric("INST", len(df[df["cluster_name"] == "Institutional"]))
 
-    col1, col2, col3 = st.columns(3)
+st.subheader("Signals")
 
-    buy_count = len(df[df["Signal"] == "STRONG BUY"]) if "Signal" in df.columns else 0
-    sell_count = len(df[df["Signal"] == "EXIT"]) if "Signal" in df.columns else 0
-    inst_count = len(df[df["cluster_name"] == "Institutional"]) if "cluster_name" in df.columns else 0
+st.dataframe(
+    df[df["Signal"].isin(["STRONG BUY", "EXIT"])],
+    use_container_width=True
+)
 
-    col1.metric("BUY", buy_count)
-    col2.metric("SELL", sell_count)
-    col3.metric("Institutional", inst_count)
+st.subheader("Full Data")
 
-    st.subheader("Signals")
-
-    if "Signal" in df.columns:
-        sig = df[df["Signal"].isin(["STRONG BUY", "EXIT"])]
-        st.dataframe(sig, use_container_width=True)
-
-    st.subheader("Full Data")
-    st.dataframe(df, use_container_width=True)
-
-except Exception as e:
-    st.error("App crashed.")
-    st.code(str(e))
+st.dataframe(df, use_container_width=True)
