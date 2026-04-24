@@ -10,25 +10,26 @@ def analyze_market(df):
     # Return %
     df["return_pct"] = ((df["ltp"] - df["open"]) / df["open"]) * 100
 
-    # Turnover million
+    # Turnover in millions
     df["turnover_m"] = df["turnover"] / 1000000
     df["turnover_m"] = df["turnover_m"].replace(0, 0.0001)
 
     # Amihud Ratio
     df["amihud"] = abs(df["return_pct"]) / df["turnover_m"]
 
-    # Quantile Rules instead of sklearn
+    # Rule-based clustering
     high_turn = df["turnover"].quantile(0.80)
     high_amihud = df["amihud"].quantile(0.80)
     low_amihud = df["amihud"].quantile(0.30)
 
-    conditions = [
-        (df["turnover"] >= high_turn) & (df["amihud"] <= low_amihud),
-        (df["amihud"] >= high_amihud),
-    ]
+    df["cluster_name"] = "Retail"
 
-    labels = ["Institutional", "Speculative"]
+    df.loc[df["amihud"] >= high_amihud, "cluster_name"] = "Speculative"
 
-    df["cluster_name"] = np.select(conditions, labels, default="Retail")
+    df.loc[
+        (df["turnover"] >= high_turn) &
+        (df["amihud"] <= low_amihud),
+        "cluster_name"
+    ] = "Institutional"
 
     return df
