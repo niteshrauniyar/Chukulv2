@@ -8,6 +8,7 @@ def analyze_market(df):
     df = df.copy()
 
     df["return_pct"] = ((df["ltp"] - df["open"]) / df["open"]) * 100
+
     df["turnover_m"] = df["turnover"] / 1_000_000
     df["turnover_m"] = df["turnover_m"].replace(0, 0.0001)
 
