@@ -17,7 +17,9 @@ class ChukulFetcher:
 
     def fetch(self):
         try:
-            r = requests.get(self.url, headers=self.headers, timeout=10)
+            r = requests.get(self.url, headers=self.headers, timeout=5)
+            r.raise_for_status()
+
             data = r.json()
 
             rows = []
@@ -31,9 +33,14 @@ class ChukulFetcher:
                 })
 
             df = pd.DataFrame(rows)
+
+            if df.empty:
+                return pd.DataFrame()
+
             df = df[(df["ltp"] > 0) & (df["volume"] > 0)]
 
             return df
 
-        except:
+        except Exception as e:
+            print("API error:", e)
             return pd.DataFrame()
